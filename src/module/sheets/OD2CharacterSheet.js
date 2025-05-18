@@ -520,14 +520,8 @@ export default class OD2CharacterSheet extends foundry.appv1.sheets.ActorSheet {
     }
     if (!itemId) return;
     const item = this.actor.items.get(itemId);
-    const spellFlags = item.getFlag('olddragon2e', 'spell') || {};
-    const slots = Number(spellFlags.slots) || 0;
 
     if (!item.system.damage) return;
-    if (slots === 0) {
-      ui.notifications.warn(`Não há mais usos disponíveis para a magia "${item.name}".`);
-      return;
-    }
 
     const damageRoll = new DamageRoll(this.actor, item);
 
