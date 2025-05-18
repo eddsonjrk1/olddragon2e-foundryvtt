@@ -189,6 +189,7 @@ export default class OD2CharacterSheet extends foundry.appv1.sheets.ActorSheet {
       html.find('.memorized-toggle').change(this._onSpellMemorizedToggle.bind(this));
       html.find('.slots-select').change(this._onSpellSlotsChange.bind(this));
       html.find('.spell-use-checkbox').change(this._onSpellUseCheckboxChange.bind(this));
+      html.find('.spell-damage .border-button').click(this._onSpellDamageRoll.bind(this));
       html.find('.class-ability-use-checkbox').change(this._onClassAbilityUseCheckboxChange.bind(this));
       html.find('.stat-roll').click(this._onStatRoll.bind(this));
       html.find('.jp-roll').click(this._onJPRoll.bind(this));
@@ -505,6 +506,62 @@ export default class OD2CharacterSheet extends foundry.appv1.sheets.ActorSheet {
         );
       }
     }
+  }
+
+  // Rolagem de dano de magia
+  async _onSpellDamageRoll(event) {
+    event.preventDefault();
+    // Tenta pegar o itemId do contexto da ficha OU do botão do chat
+    let itemId = null;
+    if (event.currentTarget.closest('.item')) {
+      itemId = event.currentTarget.closest('.item').dataset.itemId;
+    } else if (event.currentTarget.dataset.itemId) {
+      itemId = event.currentTarget.dataset.itemId;
+    }
+    if (!itemId) return;
+    const item = this.actor.items.get(itemId);
+    const spellFlags = item.getFlag('olddragon2e', 'spell') || {};
+    const slots = Number(spellFlags.slots) || 0;
+
+    if (!item.system.damage) return;
+    if (slots === 0) {
+      ui.notifications.warn(`Não há mais usos disponíveis para a magia "${item.name}".`);
+      return;
+    }
+
+    const damageRoll = new DamageRoll(this.actor, item);
+
+    await showDialog({
+      title: `Rolar Dano de Magia`,
+      content: 'systems/olddragon2e/templates/dialog/characters/spell-damage-roll-dialog.hbs',
+      buttons: {
+        roll: {
+          icon: "<i class='fa-solid fa-dice-d20'></i>",
+          label: 'Rolar',
+          callback: async (html) => {
+            const bonus = html.find('#bonus').val();
+            const mode = html.find('#rollMode').val();
+            const attackMode = html.find('#attack-mode').val();
+            await damageRoll.roll(bonus, attackMode);
+            damageRoll.sendMessage(mode);
+          },
+        },
+      },
+      render: (html) => {
+        const formulaEl = html.find('#formula');
+        const attackModeEl = html.find('#attack-mode');
+        const updateFormula = () => {
+          const selectedAttackMode = attackModeEl.val();
+          formulaEl.val(damageRoll.printFormula(selectedAttackMode));
+        };
+        formulaEl.val(damageRoll.printFormula());
+        attackModeEl.val(damageRoll.itemAttackType);
+        attackModeEl.change(() => {
+          updateFormula();
+        });
+        updateFormula();
+      },
+    });
   }
 
   // Usos diários de habilidade de classe

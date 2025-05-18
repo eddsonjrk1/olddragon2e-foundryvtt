@@ -23,6 +23,7 @@ export class OD2SpellDataModel extends OD2ItemDataModel {
       range: new fields.StringField(),
       duration: new fields.StringField(),
       jp: new fields.StringField(),
+      damage: new fields.StringField(),
     };
   }
 }
